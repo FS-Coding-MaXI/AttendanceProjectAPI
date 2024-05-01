@@ -16,8 +16,8 @@ These tools are required to build and run the containers for the application and
 Clone the repository to your local machine:
 
 ```bash
-git clone https://yourrepository.com/yourproject.git
-cd yourproject
+git clone https://github.com/FS-Coding-MaXI/AttendanceProjectAPI.git
+cd AttendanceProjectAPI
 ```
 
 ## Configuration

@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from database import engine, metadata, database
-from routers.user_router import user_router
+from routers.user_router import router as user_router
 from fastapi.middleware.cors import CORSMiddleware
 
 metadata.create_all(bind=engine)

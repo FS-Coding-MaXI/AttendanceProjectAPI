@@ -1,5 +1,7 @@
-from pydantic import BaseModel, EmailStr, DateTime
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
 from typing import Optional
+
 
 # User Base Schema
 class UserBase(BaseModel):
@@ -18,7 +20,7 @@ class UserLogin(BaseModel):
 # Schema for Public User Data (without sensitive data)
 class UserPublic(UserBase):
     id: int
-    created_at: Optional[DateTime]
+    created_at: Optional[datetime]
 
     class Config:
-        orm_mode = True
+        from_attributes = True 
