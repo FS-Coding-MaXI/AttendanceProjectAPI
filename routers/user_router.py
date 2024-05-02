@@ -1,43 +1,35 @@
-from contextvars import Token
-from typing import Optional
+import logging
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import select
-from sqlalchemy.exc import SQLAlchemyError
-from models import users  
-from passlib.context import CryptContext
 from database import get_db
-from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
-from schemas.user_schema import TokenResponse, UserCreate, UserLogin, UserPublic
-from services.user_service import authenticate_user, create_access_token, get_password_hash, serialize_datetime
+from schemas.user_schema import TokenResponse, UserCreate, UserLogin
+from services.user_service import authenticate_user, create_access_token, serialize_datetime
+from repositories.user_repository import get_user_by_email, insert_new_user, get_user_by_id
 import os
+from datetime import timedelta
 
+logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
 
 @router.post("/users/", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):    
     try:
-        existing_user = db.execute(select(users).where(users.c.email == user.email)).scalar()
+        existing_user = get_user_by_email(db, user.email)
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
 
-        hashed_password = get_password_hash(user.password)
-        db_user = users.insert().values(email=user.email, name=user.name, hashed_password=hashed_password)
-        result = db.execute(db_user)
-        db.commit()
-        new_user_id = result.inserted_primary_key[0]
-        user = db.execute(select(users).where(users.c.id == new_user_id)).first()
+        new_user_id = insert_new_user(db, user.email, user.name, user.password)
+        user = get_user_by_id(db, new_user_id)
         user_data = serialize_datetime(user)
         ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
         access_token = create_access_token(user_data, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
         return {"access_token": access_token, "token_type": "bearer"}
-    except SQLAlchemyError:
-        raise HTTPException(status_code=500, detail="Database error during user creation")
+    except Exception as e:  
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login/", response_model=TokenResponse, status_code=status.HTTP_200_OK)
-async def login(user: UserLogin, db: Session = Depends(get_db)):
+async def login(user: UserLogin, db: Session = Depends(get_db)):    
     try:
         authenticated_user = authenticate_user(db, user.email, user.password)
         if not authenticated_user:
@@ -46,5 +38,5 @@ async def login(user: UserLogin, db: Session = Depends(get_db)):
         ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
         access_token = create_access_token(user_data, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
         return {"access_token": access_token, "token_type": "bearer"}
-    except SQLAlchemyError:
-        raise HTTPException(status_code=500, detail="Database error during login")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,6 +1,7 @@
 from contextvars import Token
-from typing import Optional
-from fastapi import HTTPException, status
+from typing import Annotated, Optional
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,6 +11,11 @@ from database import get_db
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 import os
+import logging
+
+from schemas.user_schema import UserPublic
+
+logging.basicConfig(level=logging.DEBUG)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -20,10 +26,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
             expire = datetime.now(timezone.utc) + expires_delta
         else:
             expire = datetime.now(timezone.utc) + timedelta(minutes=15)  
-        to_encode.update({"exp": expire.isoformat()})
-        SECRET_KEY = os.getenv("SECRET_KEY", "your_default_secret_key")
-        ALGORITHM = os.getenv("ALGORITHM", "HS256")    
+        to_encode.update({"exp": expire.timestamp()})
+        SECRET_KEY = os.getenv("SECRET_KEY")
+        ALGORITHM = os.getenv("ALGORITHM")    
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        logging.debug(f"Encoded JWT: {encoded_jwt}")
         return encoded_jwt
     except JWTError:
         raise HTTPException(status_code=500, detail="Error encoding JWT")
@@ -55,3 +62,24 @@ def authenticate_user(db: Session, email: str, password: str):
         return user
     except SQLAlchemyError:
         raise HTTPException(status_code=500, detail="Database error during authentication")
+
+async def get_current_user(request: Request, db: Session = Depends(get_db)) -> UserPublic:
+    credentials_exception = HTTPException(      
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    token = request.cookies.get("token")    
+    if not token:
+        raise HTTPException(status_code=401, detail="No authentication token found")    
+    try:
+        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])        
+        user = payload.get("user")
+        user_id = user.get("id")
+    except JWTError as e:
+        raise credentials_exception
+    user_query = select(users).where(users.c.id == user_id)
+    user = db.execute(user_query).first()
+    if user is None:
+        raise credentials_exception
+    return user
