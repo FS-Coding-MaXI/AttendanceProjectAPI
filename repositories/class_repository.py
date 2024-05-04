@@ -1,6 +1,15 @@
+import logging
+from typing import List, Optional
 from sqlalchemy.orm import Session
-from models import classes
-from sqlalchemy.sql import select, insert
+from models import classes, meetings, attendance, students, students_classes
+from sqlalchemy.sql import select
+from schemas.class_schema import ClassWithStudents
+from schemas.student_schema import StudentForClass
+from sqlalchemy import select, func, and_
+from sqlalchemy.orm import Session
+from pydantic import parse_obj_as
+
+logging.basicConfig(level=logging.DEBUG)
 
 def check_class_conflict(db: Session, teacher_id: int, week_day: int, start_time: str, end_time: str):
     conflict_query = select(classes).where(
@@ -26,5 +35,57 @@ def create_class(db: Session, name: str, teacher_id: int, week_day: int, start_t
     db.commit()
 
 def get_classes_for_teacher(db: Session, teacher_id: int):
-    class_query = select(classes).where(classes.c.teacher_id == teacher_id)
-    return db.execute(class_query).scalars().all()
+    class_query = select(classes).where(classes.c.teacher_id == teacher_id)    
+    return db.execute(class_query).all()
+
+def get_class_by_id(db: Session, class_id: int):
+    class_query = select(classes).where(classes.c.id == class_id)
+    return db.execute(class_query).first()
+    
+def get_class_by_id_with_students(db: Session, class_id: int) -> Optional[ClassWithStudents]:
+    attendance_join = attendance.outerjoin(meetings, attendance.c.meeting_id == meetings.c.id)
+    student_join = students.outerjoin(students_classes, students.c.id == students_classes.c.student_id)
+    
+    stmt = select(
+        classes.c.id.label("id"),
+        classes.c.name.label("name"),
+        classes.c.teacher_id.label("teacher_id"),
+        classes.c.week_day.label("week_day"),
+        classes.c.start_time.label("start_time"),
+        classes.c.end_time.label("end_time"),
+        classes.c.created_at.label("created_at"),
+        classes.c.updated_at.label("updated_at"),
+        func.count(meetings.c.id).label("n_of_meetings")
+    ).select_from(classes)\
+        .outerjoin(meetings, classes.c.id == meetings.c.class_id)\
+        .where(classes.c.id == class_id)\
+        .group_by(classes.c.id)
+
+    class_result = db.execute(stmt).first()._asdict()  
+    
+    if class_result:
+        stmt_students = select(
+            students.c.id.label("id"),
+            students.c.name.label("name"),
+            students.c.email.label("email"),
+            func.count(attendance.c.presence).label("present_n_times")
+        ).select_from(student_join)\
+            .outerjoin(attendance_join, and_(students_classes.c.class_id == class_id,
+                                        attendance.c.student_id == students.c.id))\
+            .group_by(students.c.id)
+
+        students_results = db.execute(stmt_students).all()
+        student_dicts = [student._asdict() for student in students_results]          
+
+        class_result['students'] = student_dicts
+
+        logging.debug(f"Class result: {class_result}")
+        
+        return ClassWithStudents(**class_result)
+    else:
+        return None
+
+def delete_class_by_id(db: Session, class_id: int):
+    delete_query = classes.delete().where(classes.c.id == class_id)
+    db.execute(delete_query)
+    db.commit()
