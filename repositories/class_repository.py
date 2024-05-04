@@ -43,9 +43,6 @@ def get_class_by_id(db: Session, class_id: int):
     return db.execute(class_query).first()
     
 def get_class_by_id_with_students(db: Session, class_id: int) -> Optional[ClassWithStudents]:
-    attendance_join = attendance.outerjoin(meetings, attendance.c.meeting_id == meetings.c.id)
-    student_join = students.outerjoin(students_classes, students.c.id == students_classes.c.student_id)
-    
     stmt = select(
         classes.c.id.label("id"),
         classes.c.name.label("name"),
@@ -67,19 +64,25 @@ def get_class_by_id_with_students(db: Session, class_id: int) -> Optional[ClassW
         stmt_students = select(
             students.c.id.label("id"),
             students.c.name.label("name"),
-            students.c.email.label("email"),
-            func.count(attendance.c.presence).label("present_n_times")
-        ).select_from(student_join)\
-            .outerjoin(attendance_join, and_(students_classes.c.class_id == class_id,
-                                        attendance.c.student_id == students.c.id))\
-            .group_by(students.c.id)
+            students.c.email.label("email"),            
+        ).select_from(students).join(students_classes, students.c.id == students_classes.c.student_id)\
+            .where(students_classes.c.class_id == class_id).group_by(students.c.id)            
 
         students_results = db.execute(stmt_students).all()
         student_dicts = [student._asdict() for student in students_results]          
 
-        class_result['students'] = student_dicts
+        for student in student_dicts:
+            student['attendance'] = []
+            stmt_attendance = select(
+                func.count(attendance.c.id).label("present_n_times"),
+            ).select_from(attendance).join(meetings, attendance.c.meeting_id == meetings.c.id)\
+                .where(and_(meetings.c.class_id == class_id, attendance.c.student_id == student['id']))\
+                .group_by(attendance.c.student_id)
+            
+            attendance_results = db.execute(stmt_attendance).first()._asdict()
+            student['present_n_times'] = attendance_results['present_n_times']
 
-        logging.debug(f"Class result: {class_result}")
+        class_result['students'] = student_dicts        
         
         return ClassWithStudents(**class_result)
     else:
