@@ -57,6 +57,11 @@ meetings = Table(
     Column("updated_at", DateTime, default=func.now(), onupdate=func.now())
 )
 
+# Create meeings router, service, repository
+# route add function to get current meeting (by time) - get
+# route cancel meeting - post 
+# get meeting by id and get students by meeting id
+
 attendance = Table(
     "attendance",
     metadata,

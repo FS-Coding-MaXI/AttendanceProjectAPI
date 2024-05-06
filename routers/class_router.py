@@ -27,4 +27,4 @@ async def get_class_by_id_endpoint(class_id: int, db: Session = Depends(get_db),
 
 @router.delete("/classes/{class_id}/")
 async def delete_class_endpoint(class_id: int, db: Session = Depends(get_db), current_user: UserPublic = Depends(get_current_user)):
-    return remove_class(db, class_id, current_user.id);
+    return remove_class(db, class_id, current_user.id)
