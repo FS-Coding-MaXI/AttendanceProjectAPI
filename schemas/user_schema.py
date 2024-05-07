@@ -8,14 +8,17 @@ class UserBase(BaseModel):
     name: str
     email: EmailStr
 
+
 # Schema for User Creation
 class UserCreate(UserBase):
     password: str
+
 
 # Schema for User Login
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
 
 # Schema for Public User Data (without sensitive data)
 class UserPublic(UserBase):
@@ -23,7 +26,8 @@ class UserPublic(UserBase):
     created_at: Optional[datetime]
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
 
 class TokenResponse(BaseModel):
     access_token: str

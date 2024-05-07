@@ -26,6 +26,7 @@ Create a .env file in the root directory of the project. This file should contai
 ``` plaintext
 DATABASE_URL=postgresql://user:password@db/attendanceproject
 SECRET_KEY=YourSecretKeyHere
+ALGORITHM=HS256
 ```
 
 2. Docker Compose:
