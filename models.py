@@ -41,7 +41,7 @@ students_classes = Table(
     "students_classes",
     metadata,
     Column("student_id", Integer, ForeignKey("students.id"), primary_key=True),
-    Column("class_id", Integer, ForeignKey("classes.id"), primary_key=True),
+    Column("class_id", Integer, ForeignKey("classes.id", ondelete="CASCADE"), primary_key=True),
 )
 
 meetings = Table(
@@ -49,7 +49,7 @@ meetings = Table(
     metadata,
     Column("id", Integer, primary_key=True, index=True),
     Column("teacher_id", Integer, ForeignKey("users.id")),
-    Column("class_id", Integer, ForeignKey("classes.id")),
+    Column("class_id", Integer, ForeignKey("classes.id", ondelete="CASCADE")),
     Column("start_time", String),
     Column("end_time", String),
     Column("date", Date),
@@ -60,8 +60,8 @@ meetings = Table(
 attendance = Table(
     "attendance",
     metadata,
-    Column("meeting_id", Integer, ForeignKey("meetings.id"), primary_key=True),
-    Column("student_id", Integer, ForeignKey("students.id"), primary_key=True),
+    Column("meeting_id", Integer, ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True),
+    Column("student_id", Integer, ForeignKey("students.id", ondelete="CASCADE"), primary_key=True),
     Column("arrival_time", DateTime),
     Column("presence", Boolean),
     Column("was_late", Boolean),
