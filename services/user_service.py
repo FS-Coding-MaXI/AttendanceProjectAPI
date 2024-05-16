@@ -1,6 +1,6 @@
 from contextvars import Token
 from typing import Annotated, Optional
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Header, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
@@ -79,7 +79,8 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    token = request.cookies.get("token")
+    authorization = request.headers.get("Authorization")
+    token = authorization.split(" ")[1]    
     if not token:
         raise HTTPException(status_code=401, detail="No authentication token found")
     try:

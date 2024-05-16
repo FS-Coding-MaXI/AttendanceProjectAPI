@@ -95,27 +95,19 @@ def get_class_by_id_with_students(
         students_results = db.execute(stmt_students).all()
         student_dicts = [student._asdict() for student in students_results]
 
-        for student in student_dicts:
-            student["attendance"] = []
-            stmt_attendance = (
-                select(
-                    func.count(attendance.c.id).label("present_n_times"),
-                )
-                .select_from(attendance)
-                .join(meetings, attendance.c.meeting_id == meetings.c.id)
-                .where(
-                    and_(
-                        meetings.c.class_id == class_id,
-                        attendance.c.student_id == student["id"],
-                    )
-                )
+        for student in student_dicts:                      
+            stmt_attendance = select(
+                func.count(attendance.c.student_id).label("present_n_times"),
+            ).select_from(attendance).outerjoin(meetings, attendance.c.meeting_id == meetings.c.id)\
+                .where(and_(meetings.c.class_id == class_id, attendance.c.student_id == student['id']))\
                 .group_by(attendance.c.student_id)
-            )
-
-            attendance_results = db.execute(stmt_attendance).first()._asdict()
-            student["present_n_times"] = attendance_results["present_n_times"]
-
-        class_result["students"] = student_dicts
+                        
+            attendance_results = db.execute(stmt_attendance)                   
+            if attendance_results.rowcount > 0:
+                attendance_results = attendance_results.first()._asdict()
+                student['present_n_times'] = attendance_results['present_n_times']
+            else:
+                student['present_n_times'] = 0
 
         return ClassWithStudents(**class_result)
     else:
