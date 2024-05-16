@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Optional
 from sqlalchemy.orm import Session
 from models import meetings
-from sqlalchemy import and_, select
-from models import students, students_classes
+from sqlalchemy import and_, func, select
+from models import students, classes, attendance, students_classes
+from schemas.meeting_schema import MeetingWithStudents
 
 
 def get_meeting_by_current_time(db: Session, current_time: datetime):
@@ -15,18 +17,64 @@ def get_meeting_by_current_time(db: Session, current_time: datetime):
     )
     return db.execute(meeting_query).first()
 
-def get_meeting_by_id_with_students(db: Session, meeting_id: int):
-    meeting_query = select(meetings).where(meetings.c.id == meeting_id)
-    return db.execute(meeting_query).first()
-
-def get_students_by_meeting_id(db: Session, meeting_id: int):
-    query = (
-        select(students)
-        .join(students_classes, students_classes.c.student_id == students.c.id)
-        .join(meetings, meetings.c.class_id == students_classes.c.class_id)
-        .filter(meetings.c.id == meeting_id)
+def get_meeting_by_id_with_students(
+    db: Session, meeting_id: int
+) -> Optional[MeetingWithStudents]:
+    stmt = (
+        select(
+            meetings.c.id.label("id"),
+            meetings.c.teacher_id.label("teacher_id"),
+            meetings.c.class_id.label("class_id"),
+            meetings.c.date.label("date"),
+            meetings.c.cancelled.label("cancelled"),
+            meetings.c.created_at.label("created_at"),
+            meetings.c.updated_at.label("updated_at"),
+        )
+        .select_from(meetings)
+        .where(meetings.c.id == meeting_id)
     )
-    return db.execute(query).fetchall()
+
+    meeting_result = db.execute(stmt).first()
+    if meeting_result:
+        meeting_dict = meeting_result._asdict()
+
+        class_id = meeting_dict['class_id']
+
+        stmt_students = (
+            select(
+                students.c.id.label("id"),
+                students.c.name.label("name"),
+                students.c.email.label("email"),
+            )
+            .select_from(students)
+            .join(students_classes, students.c.id == students_classes.c.student_id)
+            .where(students_classes.c.class_id == class_id)
+        )
+
+        students_results = db.execute(stmt_students).all()
+        student_dicts = [student._asdict() for student in students_results]
+
+        for student in student_dicts:
+            stmt_attendance = select(
+                attendance.c.presence,
+                attendance.c.was_late,
+            ).select_from(attendance)\
+             .where(and_(attendance.c.meeting_id == meeting_id, attendance.c.student_id == student['id']))
+
+            attendance_results = db.execute(stmt_attendance).first()
+            if attendance_results:
+                attendance_data = attendance_results._asdict()
+                student['presence'] = attendance_data['presence']
+                student['was_late'] = attendance_data['was_late']
+            else:
+                student['presence'] = False
+                student['was_late'] = False
+
+        meeting_dict['students'] = student_dicts
+        return MeetingWithStudents(**meeting_dict)
+    else:
+        return None
+
 
 def cancel_meeting_by_id(db: Session, meeting_id: int):
     meeting_query = select(meetings).where(meetings.c.id == meeting_id)

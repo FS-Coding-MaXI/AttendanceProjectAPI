@@ -28,17 +28,6 @@ def fetch_meeting_by_id(db: Session, meeting_id: int, teacher_id: int):
     else:
         return meeting_to_get
 
-def fetch_students_by_meeting_id(db: Session, meeting_id: int, teacher_id: int):
-    meeting_to_get = get_meeting_by_id(db, meeting_id)
-    if not meeting_to_get:
-        raise HTTPException(status_code=404, detail="Meeting {meeting_id} not found")
-    if meeting_to_get.teacher_id != teacher_id:
-        raise HTTPException(
-            status_code=403, detail="You don't have permission to view this meeting"
-        )
-    else:
-        return meeting_to_get
-    
 def cancel_meeting_by_id(db: Session, meeting_id: int, teacher_id: int):
     meeting_to_cancel = get_meeting_by_id(db, meeting_id)
     if not meeting_to_cancel:

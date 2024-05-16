@@ -28,11 +28,6 @@ async def get_meeting_by_id(
 ):
     return fetch_meeting_by_id(db, meeting_id, current_user.id)
 
-@router.get("/meetings/{meeting_id}/students", response_model=List[StudentForMeeting])
-async def get_studets_by_meeting_id(
-     meeting_id: int, db: Session = Depends(get_db), current_user: UserPublic = Depends(get_current_user)
-):
-    return fetch_students_by_meeting_id(db, meeting_id, current_user.id)
 
 @router.post("/meetings/{meeting_id}/cancel")
 async def cancel_meeting(
