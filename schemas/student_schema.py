@@ -12,3 +12,9 @@ class StudentForClass(BaseModel):
     name: str
     email: str
     present_n_times: int
+
+class StudentForMeeting(BaseModel):
+    id: int
+    name: str
+    email: str
+    present: bool

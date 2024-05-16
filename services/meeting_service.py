@@ -18,7 +18,7 @@ def fetch_meeting_by_current_time(db: Session, teacher_id: int):
         return meeting_to_get
     
 def fetch_meeting_by_id(db: Session, meeting_id: int, teacher_id: int):
-    meeting_to_get = get_meeting_by_id(db, meeting_id)
+    meeting_to_get = get_meeting_by_id_with_students(db, meeting_id)
     if not meeting_to_get:
         raise HTTPException(status_code=404, detail="Meeting not found")
     if meeting_to_get.teacher_id != teacher_id:
