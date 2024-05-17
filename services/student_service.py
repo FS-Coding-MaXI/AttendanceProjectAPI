@@ -8,8 +8,9 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 def get_students_by_search_term(db: Session, search_term: str):
-    if (search_term == ""):
+    if search_term == "":
         return []
         
     if (search_term.isnumeric()):

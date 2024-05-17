@@ -14,6 +14,7 @@ def get_students_by_name_or_email(db: Session, searchTerm: str):
     result =  db.execute(stmt).all()
     return [row._asdict() for row in result]
 
+
 def get_student_by_id(db: Session, student_id: int):
     stmt = select(students).where(students.c.id == student_id)
     return db.execute(stmt).first()._asdict()

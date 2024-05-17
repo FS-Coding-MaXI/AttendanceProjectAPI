@@ -50,9 +50,8 @@ meetings = Table(
     Column("id", Integer, primary_key=True, index=True),
     Column("teacher_id", Integer, ForeignKey("users.id")),
     Column("class_id", Integer, ForeignKey("classes.id", ondelete="CASCADE")),
-    Column("start_time", String),
-    Column("end_time", String),
     Column("date", Date),
+    Column("cancelled", Boolean, default=False),
     Column("created_at", DateTime, default=func.now()),
     Column("updated_at", DateTime, default=func.now(), onupdate=func.now())
 )
