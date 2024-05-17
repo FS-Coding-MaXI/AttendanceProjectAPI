@@ -1,13 +1,42 @@
-from datetime import datetime
-from fastapi import HTTPException
+from datetime import datetime, timedelta
+
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from repositories.meeting_repository import (
-    get_meeting_by_current_time,
-    get_meeting_by_id
-)
+
+from database import get_db
+from repositories.class_repository import get_class_by_id
+from repositories.meeting_repository import (create_meeting_for_class,
+                                             get_meeting_by_class_id_and_date,
+                                             get_meeting_by_current_time,
+                                             get_meeting_by_id_with_students)
+
+
+def create_meeting(class_id: int, db: Session = Depends(get_db)):
+    class_ = get_class_by_id(class_id)
+
+    today = datetime.now().date()
+    day_of_week = today.weekday()
+
+    days_until_meeting = (class_.week_day - day_of_week) % 7
+    if (
+        days_until_meeting == 0
+        and datetime.now().time() > datetime.strptime(class_.end_time, "%H:%M").time()
+    ):
+        days_until_meeting = 7
+
+    meeting_date = today + timedelta(days=days_until_meeting)
+
+    meeting = get_meeting_by_class_id_and_date(class_id, meeting_date)
+    if not meeting:
+        create_meeting_for_class(class_id, meeting_date, class_.teacher_id)
+        return {"message": "Meeting created successfully"}
+    else:
+        return {"message": "Meeting already exists"}
+
+
 def fetch_meeting_by_current_time(db: Session, teacher_id: int):
     current_time = datetime.now()
-    meeting_to_get =  get_meeting_by_current_time(db, current_time)
+    meeting_to_get = get_meeting_by_current_time(db, current_time)
     if not meeting_to_get:
         raise HTTPException(status_code=404, detail="Meeting not found")
     if meeting_to_get.teacher_id != teacher_id:
@@ -16,7 +45,8 @@ def fetch_meeting_by_current_time(db: Session, teacher_id: int):
         )
     else:
         return meeting_to_get
-    
+
+
 def fetch_meeting_by_id(db: Session, meeting_id: int, teacher_id: int):
     meeting_to_get = get_meeting_by_id_with_students(db, meeting_id)
     if not meeting_to_get:
@@ -27,6 +57,7 @@ def fetch_meeting_by_id(db: Session, meeting_id: int, teacher_id: int):
         )
     else:
         return meeting_to_get
+
 
 def cancel_meeting_by_id(db: Session, meeting_id: int, teacher_id: int):
     meeting_to_cancel = get_meeting_by_id(db, meeting_id)

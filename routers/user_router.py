@@ -1,20 +1,16 @@
 import logging
-from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session
-from database import get_db
-from schemas.user_schema import TokenResponse, UserCreate, UserLogin
-from services.user_service import (
-    authenticate_user,
-    create_access_token,
-    serialize_datetime,
-)
-from repositories.user_repository import (
-    get_user_by_email,
-    insert_new_user,
-    get_user_by_id,
-)
 import os
 from datetime import timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from database import get_db
+from repositories.user_repository import (get_user_by_email, get_user_by_id,
+                                          insert_new_user)
+from schemas.user_schema import TokenResponse, UserCreate, UserLogin
+from services.user_service import (authenticate_user, create_access_token,
+                                   serialize_datetime)
 
 logging.basicConfig(level=logging.DEBUG)
 

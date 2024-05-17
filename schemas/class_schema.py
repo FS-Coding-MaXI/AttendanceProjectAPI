@@ -1,12 +1,9 @@
-from pydantic import BaseModel, EmailStr, parse_obj_as
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, parse_obj_as
 
 from schemas.student_schema import StudentForClass
-
-from pydantic import BaseModel
-from typing import Optional, List
-from datetime import datetime
 
 
 class ClassCreate(BaseModel):

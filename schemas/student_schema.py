@@ -13,6 +13,7 @@ class StudentForClass(BaseModel):
     email: str
     present_n_times: int
 
+
 class StudentForMeeting(BaseModel):
     id: int
     name: str

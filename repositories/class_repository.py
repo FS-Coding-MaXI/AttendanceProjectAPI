@@ -1,15 +1,29 @@
 import logging
 from typing import List, Optional
-from sqlalchemy.orm import Session
-from models import classes, meetings, attendance, students, students_classes
+
+from fastapi import Depends
+from pydantic import parse_obj_as
+from sqlalchemy import and_, func, select
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.sql import select
+
+from database import engine, get_db
+from models import attendance, classes, meetings, students, students_classes
 from schemas.class_schema import ClassWithStudents
 from schemas.student_schema import StudentForClass
-from sqlalchemy import select, func, and_
-from sqlalchemy.orm import Session
-from pydantic import parse_obj_as
 
 logging.basicConfig(level=logging.DEBUG)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_all_classes():
+    db = SessionLocal()
+    try:
+        class_query = select(classes)
+        result = db.execute(class_query).all()
+        return result
+    finally:
+        db.close()
 
 
 def check_class_conflict(
@@ -46,14 +60,24 @@ def create_class(
     db.commit()
 
 
-def get_classes_for_teacher(db: Session, teacher_id: int):
-    class_query = select(classes).where(classes.c.teacher_id == teacher_id)
-    return db.execute(class_query).all()
+def get_classes_for_teacher(teacher_id: int):
+    db = SessionLocal()
+    try:
+        class_query = select(classes).where(classes.c.teacher_id == teacher_id)
+        reuslt = db.execute(class_query).all()
+        return reuslt
+    finally:
+        db.close()
 
 
-def get_class_by_id(db: Session, class_id: int):
-    class_query = select(classes).where(classes.c.id == class_id)
-    return db.execute(class_query).first()
+def get_class_by_id(class_id: int):
+    db = SessionLocal()
+    try:
+        class_query = select(classes).where(classes.c.id == class_id)
+        result = db.execute(class_query).first()
+        return result
+    finally:
+        db.close()
 
 
 def get_class_by_id_with_students(
@@ -95,19 +119,28 @@ def get_class_by_id_with_students(
         students_results = db.execute(stmt_students).all()
         student_dicts = [student._asdict() for student in students_results]
 
-        for student in student_dicts:                      
-            stmt_attendance = select(
-                func.count(attendance.c.student_id).label("present_n_times"),
-            ).select_from(attendance).outerjoin(meetings, attendance.c.meeting_id == meetings.c.id)\
-                .where(and_(meetings.c.class_id == class_id, attendance.c.student_id == student['id']))\
+        for student in student_dicts:
+            stmt_attendance = (
+                select(
+                    func.count(attendance.c.student_id).label("present_n_times"),
+                )
+                .select_from(attendance)
+                .outerjoin(meetings, attendance.c.meeting_id == meetings.c.id)
+                .where(
+                    and_(
+                        meetings.c.class_id == class_id,
+                        attendance.c.student_id == student["id"],
+                    )
+                )
                 .group_by(attendance.c.student_id)
-                        
-            attendance_results = db.execute(stmt_attendance)                   
+            )
+
+            attendance_results = db.execute(stmt_attendance)
             if attendance_results.rowcount > 0:
                 attendance_results = attendance_results.first()._asdict()
-                student['present_n_times'] = attendance_results['present_n_times']
+                student["present_n_times"] = attendance_results["present_n_times"]
             else:
-                student['present_n_times'] = 0
+                student["present_n_times"] = 0
 
         return ClassWithStudents(**class_result)
     else:

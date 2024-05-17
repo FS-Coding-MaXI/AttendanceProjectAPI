@@ -1,18 +1,19 @@
+import logging
+import os
 from contextvars import Token
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Optional
-from fastapi import Depends, HTTPException, Header, Request, status
+
+from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
-from sqlalchemy.exc import SQLAlchemyError
-from models import users
-from passlib.context import CryptContext
-from database import get_db
-from datetime import datetime, timedelta, timezone
-from jose import jwt, JWTError
-import os
-import logging
 
+from database import get_db
+from models import users
 from schemas.user_schema import UserPublic
 
 logging.basicConfig(level=logging.DEBUG)
@@ -80,7 +81,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     authorization = request.headers.get("Authorization")
-    token = authorization.split(" ")[1]    
+    token = authorization.split(" ")[1]
     if not token:
         raise HTTPException(status_code=401, detail="No authentication token found")
     try:

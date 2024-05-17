@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from datetime import date, datetime
 from typing import List, Optional
+
+from pydantic import BaseModel
 
 from schemas.student_schema import StudentForMeeting
 

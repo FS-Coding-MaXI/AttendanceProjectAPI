@@ -1,11 +1,15 @@
+import asyncio
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from database import engine, metadata, database
-from routers.user_router import router as user_router
-from routers.class_router import router as class_router
-from routers.student_router import router as student_router
-from routers.meetings_router import router as meetings_router
 from fastapi.middleware.cors import CORSMiddleware
+
+from database import database, engine, metadata
+from routers.class_router import router as class_router
+from routers.meeting_router import router as meetings_router
+from routers.student_router import router as student_router
+from routers.user_router import router as user_router
+from scheduler import start_scheduler
 
 metadata.create_all(bind=engine)
 
@@ -13,6 +17,7 @@ metadata.create_all(bind=engine)
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     await database.connect()
+    start_scheduler()
     yield
     await database.disconnect()
 

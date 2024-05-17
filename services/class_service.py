@@ -1,13 +1,10 @@
-from sqlalchemy.orm import Session
-from repositories.class_repository import (
-    check_class_conflict,
-    create_class,
-    delete_class_by_id,
-    get_class_by_id,
-    get_class_by_id_with_students,
-    get_classes_for_teacher,
-)
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
+from repositories.class_repository import (check_class_conflict, create_class,
+                                           delete_class_by_id, get_class_by_id,
+                                           get_class_by_id_with_students,
+                                           get_classes_for_teacher)
 
 
 def validate_and_create_class(db: Session, class_info, current_user):
@@ -33,8 +30,8 @@ def validate_and_create_class(db: Session, class_info, current_user):
     return class_info
 
 
-def fetch_classes_for_user(db: Session, teacher_id: int):
-    return get_classes_for_teacher(db, teacher_id)
+def fetch_classes_for_user(teacher_id: int):
+    return get_classes_for_teacher(teacher_id)
 
 
 def remove_class(db: Session, class_id: int, current_user_id: int):
