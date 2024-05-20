@@ -49,3 +49,10 @@ typing_extensions==4.11.0
 tzlocal==5.2
 uvicorn==0.29.0
 virtualenv==20.26.2
+numpy==1.26.4
+pandas==1.4.1
+opencv-python==4.9.0.80
+insightface==0.7.3
+scikit-learn==1.4.2
+onnxruntime==1.17.3
+python-multipart==0.0.9
