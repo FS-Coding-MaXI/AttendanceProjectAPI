@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from typing import Optional
 
 from sqlalchemy import and_, func, select
@@ -8,14 +9,28 @@ from database import engine
 from models import attendance, classes, meetings, students, students_classes
 from schemas.meeting_schema import MeetingWithStudents
 
+logging.basicConfig(level=logging.DEBUG)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+def get_meetings_by_class_id(class_id: int):
+    db = SessionLocal()
+    try:        
+        meeting_query = select(meetings).where(meetings.c.class_id == class_id)        
+        result = db.execute(meeting_query).all()   
+        logging.debug(result)     
+        return [meeting._asdict() for meeting in result]
+    finally:
+        db.close()
 
-def get_latest_meeting_by_class_id(db: Session, class_id: int):
+
+def get_next_meeting(class_id: int):
+    db = SessionLocal()
+    current_date = datetime.now().date()
     meeting_query = (
         select(meetings)
-        .where(meetings.c.class_id == class_id)
-        .order_by(meetings.c.date.desc())
+        .where(and_(meetings.c.class_id == class_id, meetings.c.date > current_date))
+        .order_by(meetings.c.date.asc())
     )
     return db.execute(meeting_query).first()
 
@@ -38,8 +53,9 @@ def create_meeting_for_class(class_id: int, date: datetime, teacher_id: int):
         new_meeting = meetings.insert().values(
             class_id=class_id, date=date, teacher_id=teacher_id
         )
-        db.execute(new_meeting)
+        result = db.execute(new_meeting)
         db.commit()
+        return result.inserted_primary_key[0]
     finally:
         db.close()
 
@@ -60,35 +76,22 @@ def get_meeting_by_current_time(db: Session, current_time: datetime):
 
 
 def get_meeting_by_id_with_students(
-    db: Session, meeting_id: int
+    meeting_id: int
 ) -> Optional[MeetingWithStudents]:
+    db = SessionLocal()
+
     stmt = (
-        select(
-            meetings.c.id.label("id"),
-            meetings.c.teacher_id.label("teacher_id"),
-            meetings.c.class_id.label("class_id"),
-            meetings.c.date.label("date"),
-            meetings.c.cancelled.label("cancelled"),
-            meetings.c.created_at.label("created_at"),
-            meetings.c.updated_at.label("updated_at"),
-        )
-        .select_from(meetings)
+        select(meetings)        
         .where(meetings.c.id == meeting_id)
     )
 
-    meeting_result = db.execute(stmt).first()
-    if meeting_result:
-        meeting_dict = meeting_result._asdict()
+    meeting_result = db.execute(stmt).first()._asdict()
+    if meeting_result:        
 
-        class_id = meeting_dict["class_id"]
+        class_id = meeting_result["class_id"]
 
         stmt_students = (
-            select(
-                students.c.id.label("id"),
-                students.c.name.label("name"),
-                students.c.email.label("email"),
-            )
-            .select_from(students)
+            select(students)
             .join(students_classes, students.c.id == students_classes.c.student_id)
             .where(students_classes.c.class_id == class_id)
         )
@@ -98,11 +101,7 @@ def get_meeting_by_id_with_students(
 
         for student in student_dicts:
             stmt_attendance = (
-                select(
-                    attendance.c.presence,
-                    attendance.c.was_late,
-                )
-                .select_from(attendance)
+                select(attendance)
                 .where(
                     and_(
                         attendance.c.meeting_id == meeting_id,
@@ -111,17 +110,14 @@ def get_meeting_by_id_with_students(
                 )
             )
 
-            attendance_results = db.execute(stmt_attendance).first()
+            attendance_results = db.execute(stmt_attendance).first()._asdict()
             if attendance_results:
-                attendance_data = attendance_results._asdict()
-                student["presence"] = attendance_data["presence"]
-                student["was_late"] = attendance_data["was_late"]
+                student["attendance"] = attendance_results
             else:
-                student["presence"] = False
-                student["was_late"] = False
+                student["attendance"] = dict()
 
-        meeting_dict["students"] = student_dicts
-        return MeetingWithStudents(**meeting_dict)
+        meeting_result["students"] = student_dicts        
+        return MeetingWithStudents(**meeting_result)
     else:
         return None
 

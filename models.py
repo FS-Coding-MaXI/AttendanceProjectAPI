@@ -79,8 +79,8 @@ attendance = Table(
         primary_key=True,
     ),
     Column("arrival_time", DateTime),
-    Column("presence", Boolean),
-    Column("was_late", Boolean),
+    Column("presence", Boolean, default=False),
+    Column("was_late", Boolean, default=False),
     Column("created_at", DateTime, default=func.now()),
     Column("updated_at", DateTime, default=func.now(), onupdate=func.now()),
 )

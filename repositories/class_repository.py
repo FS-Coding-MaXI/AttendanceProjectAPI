@@ -56,10 +56,11 @@ def create_class(
         start_time=start_time,
         end_time=end_time,
     )
-    db.execute(new_class)
+    result = db.execute(new_class)
     db.commit()
-
-
+    class_id = result.inserted_primary_key[0] 
+    return class_id
+  
 def get_classes_for_teacher(teacher_id: int):
     db = SessionLocal()
     try:
@@ -81,8 +82,9 @@ def get_class_by_id(class_id: int):
 
 
 def get_class_by_id_with_students(
-    db: Session, class_id: int
+    class_id: int
 ) -> Optional[ClassWithStudents]:
+    db = SessionLocal()
     stmt = (
         select(
             classes.c.id.label("id"),
@@ -117,7 +119,7 @@ def get_class_by_id_with_students(
         )
 
         students_results = db.execute(stmt_students).all()
-        student_dicts = [student._asdict() for student in students_results]
+        student_dicts = [student._asdict() for student in students_results]        
 
         for student in student_dicts:
             stmt_attendance = (
@@ -141,6 +143,8 @@ def get_class_by_id_with_students(
                 student["present_n_times"] = attendance_results["present_n_times"]
             else:
                 student["present_n_times"] = 0
+            
+        class_result["students"] = student_dicts
 
         return ClassWithStudents(**class_result)
     else:

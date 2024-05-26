@@ -32,7 +32,6 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         SECRET_KEY = os.getenv("SECRET_KEY")
         ALGORITHM = os.getenv("ALGORITHM")
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-        logging.debug(f"Encoded JWT: {encoded_jwt}")
         return encoded_jwt
     except JWTError:
         raise HTTPException(status_code=500, detail="Error encoding JWT")
@@ -80,7 +79,9 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    authorization = request.headers.get("Authorization")
+    authorization = request.headers.get("Authorization")    
+    if not authorization:
+        raise credentials_exception
     token = authorization.split(" ")[1]
     if not token:
         raise HTTPException(status_code=401, detail="No authentication token found")

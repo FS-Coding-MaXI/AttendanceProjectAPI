@@ -29,10 +29,9 @@ async def get_students(
 async def add_student_to_class(
     student_id: int,
     class_id: int,
-    db: Session = Depends(get_db),
     current_user: UserPublic = Depends(get_current_user),
 ):
-    return add_student_to_class_service(db, current_user.id, student_id, class_id)
+    return add_student_to_class_service(current_user.id, student_id, class_id)
 
 
 @router.delete("/students/{student_id}/class/{class_id}")

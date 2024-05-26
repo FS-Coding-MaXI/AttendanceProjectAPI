@@ -19,7 +19,7 @@ def validate_and_create_class(db: Session, class_info, current_user):
         raise HTTPException(
             status_code=400, detail="A class already exists in the specified timeframe"
         )
-    create_class(
+    new_class = create_class(
         db,
         class_info.name,
         current_user.id,
@@ -27,7 +27,7 @@ def validate_and_create_class(db: Session, class_info, current_user):
         class_info.start_time,
         class_info.end_time,
     )
-    return class_info
+    return new_class
 
 
 def fetch_classes_for_user(teacher_id: int):
@@ -35,7 +35,7 @@ def fetch_classes_for_user(teacher_id: int):
 
 
 def remove_class(db: Session, class_id: int, current_user_id: int):
-    class_to_delete = get_class_by_id(db, class_id)
+    class_to_delete = get_class_by_id(class_id)
     if not class_to_delete:
         raise HTTPException(status_code=404, detail="Class not found")
     if class_to_delete.teacher_id != current_user_id:
@@ -47,8 +47,8 @@ def remove_class(db: Session, class_id: int, current_user_id: int):
     return {"message": "Class successfully deleted"}
 
 
-def fetch_class_by_id(db: Session, class_id: int, current_user_id: int):
-    class_info = get_class_by_id_with_students(db, class_id)
+def fetch_class_by_id(class_id: int, current_user_id: int):
+    class_info = get_class_by_id_with_students(class_id)
     if not class_info:
         raise HTTPException(status_code=404, detail="Class not found")
     if class_info.teacher_id != current_user_id:
