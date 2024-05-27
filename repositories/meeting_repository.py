@@ -22,7 +22,7 @@ def get_current_meeting(teacher_id: int):
             .where(meetings.c.teacher_id == teacher_id
             )
             .where(meetings.c.start_date <= func.now())
-            # .where(meetings.c.end_date >= func.now())
+            .where(meetings.c.end_date >= func.now())
         )
         result = db.execute(meeting_query).first()
         logging.debug(result)
