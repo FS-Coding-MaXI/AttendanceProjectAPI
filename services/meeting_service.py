@@ -70,15 +70,10 @@ def create_meeting(class_id: int):
         return {"message": "Meeting already exists"}
 
 
-def fetch_meeting_by_current_time(db: Session, teacher_id: int):
-    current_time = datetime.now()
-    meeting_to_get = get_current_meeting(db, current_time)
+def fetch_meeting_by_current_time(teacher_id: int):    
+    meeting_to_get = get_current_meeting(teacher_id)
     if not meeting_to_get:
-        raise HTTPException(status_code=404, detail="Meeting not found")
-    if meeting_to_get.teacher_id != teacher_id:
-        raise HTTPException(
-            status_code=403, detail="You don't have permission to view this meeting"
-        )
+        raise HTTPException(status_code=404, detail="Meeting not found")    
     else:
         return meeting_to_get
 

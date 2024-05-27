@@ -14,30 +14,31 @@ logging.basicConfig(level=logging.DEBUG)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_current_meeting(teacher_id):
+def get_current_meeting(teacher_id: int):
     db = SessionLocal()
-    current_time = datetime.now()
-    meeting_query = (
-        select(meetings)
-        .join(classes, classes.c.id == meetings.c.class_id)
-        .where(
-            and_(
-                classes.c.teacher_id == teacher_id,
-                classes.c.start_time <= current_time.strftime("%H:%M"),
-                classes.c.end_time >= current_time.strftime("%H:%M"),
-                classes.c.week_day == current_time.weekday(),
+    try:                
+        meeting_query = (
+            select(meetings)
+            .where(meetings.c.teacher_id == teacher_id
             )
+            .where(meetings.c.start_date <= func.now())
+            # .where(meetings.c.end_date >= func.now())
         )
-    )
-    return db.execute(meeting_query).first()
+        result = db.execute(meeting_query).first()
+        logging.debug(result)
+        if result:
+            return result._asdict()  
+        else:
+            return None
+    finally:
+        db.close()
 
 
 def get_meetings_by_class_id(class_id: int):
     db = SessionLocal()
     try:
         meeting_query = select(meetings).where(meetings.c.class_id == class_id)
-        result = db.execute(meeting_query).all()
-        logging.debug(result)
+        result = db.execute(meeting_query).all()        
         return [meeting._asdict() for meeting in result]
     finally:
         db.close()

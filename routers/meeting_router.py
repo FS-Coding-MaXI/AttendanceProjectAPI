@@ -29,19 +29,6 @@ async def get_meeting_by_id(
 ):
     return fetch_meeting_by_id(meeting_id, current_user.id)
 
-
-@router.get("/meetings/now")
-async def get_current_meeting(current_user: UserPublic = Depends(get_current_user)):
-    return fetch_meeting_by_current_time(current_user.id)
-
-
-@router.get("/meetings/")
-async def get_meeting_by_current_time(
-    db: Session = Depends(get_db), current_user: UserPublic = Depends(get_current_user)
-):
-    return fetch_meeting_by_current_time(db, current_user.id)
-
-
 @router.get("/meetings/class/{class_id}", response_model=List[MeetingPublic])
 async def get_meeting(
     class_id: int,
@@ -56,3 +43,7 @@ async def cancel_meeting(
     current_user: UserPublic = Depends(get_current_user),
 ):
     return cancel_meeting_by_id(meeting_id, current_user.id)
+
+@router.get("/meetings", response_model=MeetingPublic)
+async def get_current_meeting(current_user: UserPublic = Depends(get_current_user)):    
+    return fetch_meeting_by_current_time(current_user.id)

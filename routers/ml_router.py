@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, UploadFile, File
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 import cv2
 import numpy as np
 import base64
@@ -12,20 +12,18 @@ logging.basicConfig(level=logging.DEBUG)
 router = APIRouter()
 
 
-@router.post("/ml/", response_class=Response)
+@router.post("/ml/", response_class=JSONResponse)
 async def ml_endpoint(file: UploadFile = File(...)):
-    contents = await file.read()
-    nparr = np.fromstring(contents, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    try:        
+        contents = await file.read()    
+        nparr = np.frombuffer(contents, np.uint8)        
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        detected_people_names,_ = detect_faces(img)
+                                        
+        return JSONResponse(content={
+            "detected_people_names": detected_people_names,            
+        })
 
-    (detected_people_names, converted_image) = detect_faces(img)
-
-    _, encoded_img = cv2.imencode(".PNG", converted_image)
-
-    encoded_img: bytes = base64.b64encode(encoded_img)
-
-    return Response(
-        content=encoded_img,
-        media_type="image/png",
-        headers={"Detected-names": ";".join(detected_people_names)},
-    )
+    except Exception as e:        
+        return JSONResponse(status_code=500, content={"message": str(e)})
