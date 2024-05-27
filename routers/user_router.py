@@ -6,11 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from repositories.user_repository import (get_user_by_email, get_user_by_id,
-                                          insert_new_user)
+from repositories.user_repository import (
+    get_user_by_email,
+    get_user_by_id,
+    insert_new_user,
+)
 from schemas.user_schema import TokenResponse, UserCreate, UserLogin
-from services.user_service import (authenticate_user, create_access_token,
-                                   serialize_datetime)
+from services.user_service import (
+    authenticate_user,
+    create_access_token,
+    serialize_datetime,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 

@@ -15,6 +15,7 @@ class StudentForClass(BaseModel):
     email: str
     present_n_times: int
 
+
 class Attendance(BaseModel):
     arrival_time: Optional[datetime] = None
     presence: bool
@@ -22,7 +23,7 @@ class Attendance(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     meeting_id: int
-    student_id: int    
+    student_id: int
 
 
 class StudentForMeeting(StudentBase):

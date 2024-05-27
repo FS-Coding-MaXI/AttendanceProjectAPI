@@ -58,9 +58,10 @@ def create_class(
     )
     result = db.execute(new_class)
     db.commit()
-    class_id = result.inserted_primary_key[0] 
+    class_id = result.inserted_primary_key[0]
     return class_id
-  
+
+
 def get_classes_for_teacher(teacher_id: int):
     db = SessionLocal()
     try:
@@ -81,9 +82,7 @@ def get_class_by_id(class_id: int):
         db.close()
 
 
-def get_class_by_id_with_students(
-    class_id: int
-) -> Optional[ClassWithStudents]:
+def get_class_by_id_with_students(class_id: int) -> Optional[ClassWithStudents]:
     db = SessionLocal()
     stmt = (
         select(
@@ -95,7 +94,6 @@ def get_class_by_id_with_students(
             classes.c.end_time.label("end_time"),
             classes.c.created_at.label("created_at"),
             classes.c.updated_at.label("updated_at"),
-            func.count(meetings.c.id).label("n_of_meetings"),
         )
         .select_from(classes)
         .outerjoin(meetings, classes.c.id == meetings.c.class_id)
@@ -104,6 +102,19 @@ def get_class_by_id_with_students(
     )
 
     class_result = db.execute(stmt).first()._asdict()
+
+    number_of_meetings = (
+        select(func.count(meetings.c.id).label("n_of_meetings"))
+        .where(meetings.c.class_id == class_id)
+        .where(meetings.c.cancelled == False)
+        .group_by(meetings.c.class_id)
+    )
+    meetings_result = db.execute(number_of_meetings)
+    if meetings_result.rowcount > 0:
+        meetings_result = meetings_result.first()._asdict()
+    else:
+        meetings_result = {"n_of_meetings": 0}
+    class_result["n_of_meetings"] = meetings_result["n_of_meetings"]
 
     if class_result:
         stmt_students = (
@@ -119,7 +130,7 @@ def get_class_by_id_with_students(
         )
 
         students_results = db.execute(stmt_students).all()
-        student_dicts = [student._asdict() for student in students_results]        
+        student_dicts = [student._asdict() for student in students_results]
 
         for student in student_dicts:
             stmt_attendance = (
@@ -131,7 +142,9 @@ def get_class_by_id_with_students(
                 .where(
                     and_(
                         meetings.c.class_id == class_id,
+                        meetings.c.cancelled == False,
                         attendance.c.student_id == student["id"],
+                        attendance.c.presence == True,
                     )
                 )
                 .group_by(attendance.c.student_id)
@@ -143,7 +156,7 @@ def get_class_by_id_with_students(
                 student["present_n_times"] = attendance_results["present_n_times"]
             else:
                 student["present_n_times"] = 0
-            
+
         class_result["students"] = student_dicts
 
         return ClassWithStudents(**class_result)

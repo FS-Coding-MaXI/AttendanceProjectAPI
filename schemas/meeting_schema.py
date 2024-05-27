@@ -9,7 +9,8 @@ from schemas.student_schema import StudentForMeeting
 class MeetingCreate(BaseModel):
     teacher_id: int
     class_id: int
-    date: date
+    start_date: datetime
+    end_date: datetime
 
 
 class MeetingPublic(MeetingCreate):

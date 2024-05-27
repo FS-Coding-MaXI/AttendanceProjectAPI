@@ -11,9 +11,9 @@ logging.basicConfig(level=logging.DEBUG)
 scheduler = AsyncIOScheduler()
 
 
-async def create_weekly_meetings():    
-    classes = get_all_classes()    
-    for class_ in classes:        
+async def create_weekly_meetings():
+    classes = get_all_classes()
+    for class_ in classes:
         create_meeting(class_.id)
 
 

@@ -7,10 +7,13 @@ from sqlalchemy.orm import Session
 from models import students
 from repositories.class_repository import get_class_by_id
 from repositories.meeting_repository import get_next_meeting
-from repositories.student_repository import (add_new_attendance, add_student_to_class_by_id,
-                                             get_student_by_id,
-                                             get_students_by_name_or_email,
-                                             remove_student_from_class_by_id)
+from repositories.student_repository import (
+    add_new_attendance,
+    add_student_to_class_by_id,
+    get_student_by_id,
+    get_students_by_name_or_email,
+    remove_student_from_class_by_id,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -25,9 +28,7 @@ def get_students_by_search_term(db: Session, search_term: str):
         return get_students_by_name_or_email(db, search_term)
 
 
-def add_student_to_class_service(
-            current_user_id: int, student_id: int, class_id: int
-):
+def add_student_to_class_service(current_user_id: int, student_id: int, class_id: int):
     class_ = get_class_by_id(class_id)
     if not class_:
         raise HTTPException(status_code=404, detail="Class not found")

@@ -1,10 +1,14 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from repositories.class_repository import (check_class_conflict, create_class,
-                                           delete_class_by_id, get_class_by_id,
-                                           get_class_by_id_with_students,
-                                           get_classes_for_teacher)
+from repositories.class_repository import (
+    check_class_conflict,
+    create_class,
+    delete_class_by_id,
+    get_class_by_id,
+    get_class_by_id_with_students,
+    get_classes_for_teacher,
+)
 
 
 def validate_and_create_class(db: Session, class_info, current_user):

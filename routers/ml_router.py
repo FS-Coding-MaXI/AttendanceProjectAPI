@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 router = APIRouter()
 
+
 @router.post("/ml/", response_class=Response)
 async def ml_endpoint(file: UploadFile = File(...)):
     contents = await file.read()
@@ -19,9 +20,12 @@ async def ml_endpoint(file: UploadFile = File(...)):
 
     (detected_people_names, converted_image) = detect_faces(img)
 
-    _, encoded_img = cv2.imencode('.PNG', converted_image)
+    _, encoded_img = cv2.imencode(".PNG", converted_image)
 
     encoded_img: bytes = base64.b64encode(encoded_img)
 
-    return Response(content=encoded_img, media_type="image/png", headers={"Detected-names": ";".join(detected_people_names)})
-
+    return Response(
+        content=encoded_img,
+        media_type="image/png",
+        headers={"Detected-names": ";".join(detected_people_names)},
+    )

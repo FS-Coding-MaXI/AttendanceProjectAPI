@@ -8,9 +8,11 @@ from sqlalchemy.orm import Session
 from database import get_db
 from schemas.student_schema import StudentBase
 from schemas.user_schema import UserPublic
-from services.student_service import (add_student_to_class_service,
-                                      get_students_by_search_term,
-                                      remove_student_from_class_service)
+from services.student_service import (
+    add_student_to_class_service,
+    get_students_by_search_term,
+    remove_student_from_class_service,
+)
 from services.user_service import get_current_user
 
 router = APIRouter()

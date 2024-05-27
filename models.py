@@ -1,5 +1,13 @@
-from sqlalchemy import (Boolean, Column, Date, DateTime, ForeignKey, Integer,
-                        String, Table)
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+)
 from sqlalchemy.sql import func
 
 from database import metadata
@@ -57,7 +65,8 @@ meetings = Table(
     Column("id", Integer, primary_key=True, index=True),
     Column("teacher_id", Integer, ForeignKey("users.id")),
     Column("class_id", Integer, ForeignKey("classes.id", ondelete="CASCADE")),
-    Column("date", Date),
+    Column("start_date", DateTime),
+    Column("end_date", DateTime),
     Column("cancelled", Boolean, default=False),
     Column("created_at", DateTime, default=func.now()),
     Column("updated_at", DateTime, default=func.now(), onupdate=func.now()),
