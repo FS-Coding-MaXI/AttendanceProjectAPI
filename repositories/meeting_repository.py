@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.DEBUG)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_current_meeting(teacher_id: int):
+def get_current_meeting_by_teacher_id(teacher_id: int):
     db = SessionLocal()
     try:                
         meeting_query = (
@@ -33,6 +33,42 @@ def get_current_meeting(teacher_id: int):
     finally:
         db.close()
 
+def get_current_meeting_by_class_id(class_id: int):
+    db = SessionLocal()
+    try:                
+        meeting_query = (
+            select(meetings)
+            .where(meetings.c.class_id == class_id
+            )
+            .where(meetings.c.start_date <= func.now())
+            .where(meetings.c.end_date >= func.now())
+        )
+        result = db.execute(meeting_query).first()
+        logging.debug(result)
+        if result:
+            return result._asdict()  
+        else:
+            return None
+    finally:
+        db.close()
+
+def update_meeting_student_attendance(student_id: int, meeting_id: int, present: bool):
+    db = SessionLocal()
+    try:
+        attendance_query = (
+            update(attendance)
+            .where(
+                and_(
+                    attendance.c.student_id == student_id,
+                    attendance.c.meeting_id == meeting_id,
+                )
+            )
+            .values(present=present)
+        )
+        db.execute(attendance_query)
+        db.commit()
+    finally:
+        db.close()
 
 def get_meetings_by_class_id(class_id: int):
     db = SessionLocal()

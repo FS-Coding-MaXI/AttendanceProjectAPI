@@ -31,6 +31,16 @@ def get_student_by_id(db: Session, student_id: int):
     stmt = select(students).where(students.c.id == student_id)
     return db.execute(stmt).first()._asdict()
 
+def get_student_classes(db: Session, student_id: int):
+    db = SessionLocal()
+    try:
+        stmt = select(students_classes).where(
+            students_classes.c.student_id == student_id
+        )
+        result = db.execute(stmt).all()
+        return [row._asdict() for row in result]
+    finally:
+        db.close()
 
 def get_students_for_class(class_id: int):
     db = SessionLocal()

@@ -8,7 +8,7 @@ from repositories.class_repository import get_class_by_id
 from repositories.meeting_repository import (
     cancel_meeting,
     create_meeting_for_class,
-    get_current_meeting,
+    get_current_meeting_by_teacher_id,
     get_meeting_by_class_id_and_date,
     get_meeting_by_id,
     get_meeting_by_id_with_students,
@@ -71,7 +71,7 @@ def create_meeting(class_id: int):
 
 
 def fetch_meeting_by_current_time(teacher_id: int):    
-    meeting_to_get = get_current_meeting(teacher_id)
+    meeting_to_get = get_current_meeting_by_teacher_id(teacher_id)
     if not meeting_to_get:
         raise HTTPException(status_code=404, detail="Meeting not found")    
     else:

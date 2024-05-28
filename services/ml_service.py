@@ -99,7 +99,7 @@ def detect_faces(image) -> list[tuple[int, str, str]]:
             thresh=0.5,
         )
         if person_name != "Unknown":
-            detected_people.append((person_id, person_name, person_role))
+            detected_people.append((int(person_id), person_name, person_role))
 
     return detected_people
 
