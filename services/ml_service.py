@@ -6,6 +6,14 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import pairwise
 
+INIT_NAMES = [
+    "Filip Shramko",
+    "Mateusz Polis",
+    "Patryk Sukiennik",
+    "Sebastian Rydz",
+    "Mateusz Osik",
+]
+
 
 def prepare_dataframe() -> pd.DataFrame:
 
@@ -15,8 +23,8 @@ def prepare_dataframe() -> pd.DataFrame:
 
     person_info = []
     for folder_name in os.listdir(path="./images"):
-        role, name = folder_name.split("-")
-        name = clean_name(name)
+        role, id = folder_name.split("-")
+        id = int(id)
         role = clean_name(role)
 
         # path of each image in respective folder
@@ -34,9 +42,9 @@ def prepare_dataframe() -> pd.DataFrame:
                 res = result[0]
                 embedding = res["embedding"]
                 # step-4: save all info name, role, embedding in a list
-                person_info.append([name, role, embedding])
+                person_info.append([id, INIT_NAMES[id - 1], role, embedding])
 
-    return pd.DataFrame(person_info, columns=["Name", "Role", "Facial_Features"])
+    return pd.DataFrame(person_info, columns=["Id", "Name", "Role", "Facial_Features"])
 
 
 faceapp = FaceAnalysis(
@@ -48,7 +56,7 @@ DATAFRAME = prepare_dataframe()
 
 
 def ml_search_algorithm(
-    dataframe, feature_column, test_vector, name_role=["Name", "Role"], thresh=0.5
+    dataframe, feature_column, test_vector, columns=["Id", "Name", "Role"], thresh=0.5
 ) -> tuple[str, str]:
     """
     cosine similarity base search algorithm
@@ -70,47 +78,30 @@ def ml_search_algorithm(
         # step-5: get the person name
         data_filter.reset_index(drop=True, inplace=True)
         argmax = data_filter["cosine"].argmax()
-        person_name, person_role = data_filter.loc[argmax][name_role]
-
+        person_id, person_name, person_role = data_filter.loc[argmax][columns]
+        return person_id, person_name, person_role
     else:
-        person_name = "Unknown"
-        person_role = "Unknown"
-
-    return person_name, person_role
+        return "Unknown", "Unknown"
 
 
-def detect_faces(image):
+def detect_faces(image) -> list[tuple[int, str, str]]:
 
     results = faceapp.get(image)
-    test_copy = image.copy()
-    # step-2: use for loop and extract each embedding and pass to ml_search_algorithm
     detected_people = []
 
     for res in results:
-        x1, y1, x2, y2 = res["bbox"].astype(int)
         embeddings = res["embedding"]
-        person_name, person_role = ml_search_algorithm(
+        person_id, person_name, person_role = ml_search_algorithm(
             DATAFRAME,
             "Facial_Features",
             test_vector=embeddings,
-            name_role=["Name", "Role"],
+            columns=["Id", "Name", "Role"],
             thresh=0.5,
         )
-        if person_name == "Unknown":
-            color = (0, 0, 255)  # bgr
-        else:
-            color = (0, 255, 0)
+        if person_name != "Unknown":
+            detected_people.append((person_id, person_name, person_role))
 
-        cv2.rectangle(test_copy, (x1, y1), (x2, y2), color)
-
-        text_gen = f"{person_role}: {person_name}"
-        cv2.putText(
-            test_copy, text_gen, (x1, y1), cv2.FONT_HERSHEY_DUPLEX, 0.5, color, 1
-        )
-
-        detected_people.append(person_name)
-
-    return (detected_people, test_copy)
+    return detected_people
 
 
 # if __name__ == '__main__':

@@ -19,11 +19,14 @@ async def ml_endpoint(file: UploadFile = File(...)):
         nparr = np.frombuffer(contents, np.uint8)        
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
-        detected_people_names,_ = detect_faces(img)
-                                        
-        return JSONResponse(content={
-            "detected_people_names": detected_people_names,            
-        })
+        detected_people_names = detect_faces(img)
+
+        response_json = [
+            {"id": int(id), "name": name, "role": role}
+            for id, name, role in detected_people_names
+        ]
+
+        return JSONResponse(content={"detected_people": response_json})
 
     except Exception as e:        
         return JSONResponse(status_code=500, content={"message": str(e)})
