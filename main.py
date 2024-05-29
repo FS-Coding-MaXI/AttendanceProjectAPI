@@ -7,6 +7,7 @@ from routers.class_router import router as class_router
 from routers.student_router import router as student_router
 from routers.ml_router import router as ml_router
 from routers.main_router import router as main_router
+from routers.data_router import router as data_router
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import database, engine, metadata
@@ -43,3 +44,4 @@ app.include_router(student_router, prefix="/api/v1", tags=["students"])
 app.include_router(meetings_router, prefix="/api/v1", tags=["meetings"])
 app.include_router(ml_router, prefix="/api/v1", tags=["ml"])
 app.include_router(main_router, prefix="/api/v1", tags=["main"])
+app.include_router(data_router, prefix="/api/v1", tags=["data"])
