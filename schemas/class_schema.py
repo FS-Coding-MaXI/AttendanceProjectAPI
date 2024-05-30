@@ -1,12 +1,10 @@
-from pydantic import BaseModel, EmailStr, parse_obj_as
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, parse_obj_as
 
 from schemas.student_schema import StudentForClass
 
-from pydantic import BaseModel
-from typing import Optional, List
-from datetime import datetime
 
 class ClassCreate(BaseModel):
     name: str
@@ -14,11 +12,13 @@ class ClassCreate(BaseModel):
     start_time: str
     end_time: str
 
+
 class ClassPublic(ClassCreate):
     id: int
     teacher_id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
 
 class ClassWithStudents(ClassPublic):
     n_of_meetings: int
