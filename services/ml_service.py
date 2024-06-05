@@ -5,22 +5,16 @@ import cv2
 import pandas as pd
 import numpy as np
 from sklearn.metrics import pairwise
+from repositories import student_repository
+import logging
 
-INIT_NAMES = [
-    "Filip Shramko",
-    "Mateusz Polis",
-    "Patryk Sukiennik",
-    "Sebastian Rydz",
-    "Mateusz Osik",
-]
-
-
+logger = logging.getLogger(__name__)
 def prepare_dataframe() -> pd.DataFrame:
 
     def clean_name(string):
         string = re.sub(r"[^a-zA-Z0-9\s]", " ", string)
         return string.title()
-
+    
     person_info = []
     for folder_name in os.listdir(path="./images"):
         role, id = folder_name.split("-")
@@ -42,7 +36,8 @@ def prepare_dataframe() -> pd.DataFrame:
                 res = result[0]
                 embedding = res["embedding"]
                 # step-4: save all info name, role, embedding in a list
-                person_info.append([id, INIT_NAMES[id - 1], role, embedding])
+                name = student_repository.get_student_by_id(id)["name"]                
+                person_info.append([id, name, role, embedding])
 
     return pd.DataFrame(person_info, columns=["Id", "Name", "Role", "Facial_Features"])
 
@@ -54,6 +49,28 @@ faceapp.prepare(ctx_id=0, det_size=(640, 640), det_thresh=0.5)
 
 DATAFRAME = prepare_dataframe()
 
+def add_new_student_to_dataframe(student_id: int):
+    global DATAFRAME
+    person_info = []
+    img_files = os.listdir(path=f"./images/student-{student_id}")
+    for file in img_files:
+        path = f"./images/student-{student_id}/{file}"
+        # step-1: read the image
+        img_arr = cv2.imread(path)
+
+        # step-2: get the info
+        result = faceapp.get(img_arr, max_num=1)  # return list
+
+        if len(result) > 0:
+            # step-3: extract facial embedding
+            res = result[0]
+            embedding = res["embedding"]
+            # step-4: save all info name, role, embedding in a list
+            name = student_repository.get_student_by_id(student_id)["name"]                
+            person_info.append([student_id, name, "student", embedding])
+
+    new_data = pd.DataFrame(person_info, columns=["Id", "Name", "Role", "Facial_Features"])
+    DATAFRAME = pd.concat([DATAFRAME, new_data], ignore_index=True)
 
 def ml_search_algorithm(
     dataframe, feature_column, test_vector, columns=["Id", "Name", "Role"], thresh=0.5
@@ -81,7 +98,7 @@ def ml_search_algorithm(
         person_id, person_name, person_role = data_filter.loc[argmax][columns]
         return person_id, person_name, person_role
     else:
-        return "Unknown", "Unknown"
+        return "Unkown", "Unknown", "Unknown"
 
 
 def detect_faces(image) -> list[tuple[int, str, str]]:
@@ -98,9 +115,12 @@ def detect_faces(image) -> list[tuple[int, str, str]]:
             columns=["Id", "Name", "Role"],
             thresh=0.5,
         )
+        logger.info(f"Person: {person_name} Role: {person_role}")
         if person_name != "Unknown":
             detected_people.append((int(person_id), person_name, person_role))
+        logger.info(f"Person: {person_name} Role: {person_role}")
 
+    logger.info(f"Detected People: {detected_people}")
     return detected_people
 
 

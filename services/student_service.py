@@ -60,3 +60,4 @@ def remove_student_from_class_service(
     remove_student_from_class_by_id(student_id, class_id)
 
     return {"message": "Student successfully removed from class"}
+

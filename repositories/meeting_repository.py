@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import Optional
 
@@ -16,15 +16,21 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_current_meeting_by_teacher_id(teacher_id: int):
     db = SessionLocal()
+    current_time = func.now() + timedelta(hours=2)
     try:                
         meeting_query = (
             select(meetings)
-            .where(meetings.c.teacher_id == teacher_id
+            .where(
+                and_(
+                    meetings.c.teacher_id == teacher_id,
+                    meetings.c.start_date <= current_time,
+                    meetings.c.end_date >= current_time                    
+                )
             )
-            .where(meetings.c.start_date <= func.now())
-            .where(meetings.c.end_date >= func.now())
         )
-        result = db.execute(meeting_query).first()
+
+        logging.debug("BEDE PRINTATI REZULTATUL QUERY-ULUI")
+        result = db.execute(meeting_query).first()        
         logging.debug(result)
         if result:
             return result._asdict()  
@@ -55,18 +61,36 @@ def get_current_meeting_by_class_id(class_id: int):
 def update_meeting_student_attendance(student_id: int, meeting_id: int, present: bool):
     db = SessionLocal()
     try:
+        # Fetch the meeting start time
+        meeting_query = db.execute(
+            select(meetings.c.start_date).where(meetings.c.id == meeting_id)
+        )
+        meeting_start_time = meeting_query.scalar()
+
+        # Get current time as arrival time
+        arrival_time = datetime.now() + timedelta(hours=2)
+
+        # Determine if the student is late (more than 5 minutes after the start)
+        was_late = (arrival_time - meeting_start_time) > timedelta(minutes=10)
+
+        # Update the attendance record
         attendance_query = (
             update(attendance)
             .where(
                 and_(
                     attendance.c.student_id == student_id,
                     attendance.c.meeting_id == meeting_id,
+                    attendance.c.presence == False,
                 )
             )
-            .values(present=present)
+            .values(presence=present, arrival_time=arrival_time, was_late=was_late)
         )
         db.execute(attendance_query)
         db.commit()
+    except Exception as e:
+        logging.error(f"Error updating attendance: {str(e)}")
+        db.rollback()
+        raise
     finally:
         db.close()
 

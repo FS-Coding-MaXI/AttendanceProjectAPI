@@ -1,11 +1,21 @@
+import base64
 import logging
-from typing import List
+import os
+from sqlite3 import IntegrityError
+from typing import Annotated, List
 from urllib.request import Request
 
-from fastapi import APIRouter, Depends, Header, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from models import students
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Header, UploadFile, status
+from sqlalchemy import insert
 from sqlalchemy.orm import Session
 
 from database import get_db
+from database import engine
+from sqlalchemy.orm import Session, sessionmaker
 from schemas.student_schema import StudentBase
 from schemas.user_schema import UserPublic
 from services.student_service import (
@@ -14,6 +24,8 @@ from services.student_service import (
     remove_student_from_class_service,
 )
 from services.user_service import get_current_user
+from services.ml_service import add_new_student_to_dataframe
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 router = APIRouter()
 
@@ -44,3 +56,36 @@ async def remove_student_from_class(
     current_user: UserPublic = Depends(get_current_user),
 ):
     return remove_student_from_class_service(db, current_user.id, student_id, class_id)
+
+class StudentCreateRequest(BaseModel):
+    name: str
+    email: str
+    pictures: List[str]
+
+@router.post("/students/create", status_code=201)
+async def create_student(student: StudentCreateRequest):
+    db = SessionLocal()
+    stmt = insert(students).values(name=student.name, email=student.email)
+    try:
+        result = db.execute(stmt)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    student_id = result.inserted_primary_key[0]
+
+    student_image_folder = f'images/student-{student_id}'
+    os.makedirs(student_image_folder, exist_ok=True)
+
+    for index, picture_base64 in enumerate(student.pictures):
+        logging.info(f"Saving picture {index} for student {student_id}")
+        picture_data = base64.b64decode(picture_base64.split(",")[1])
+        picture_filename = f'picture_{index}.jpg' 
+        picture_path = os.path.join(student_image_folder, picture_filename)
+        with open(picture_path, "wb") as buffer:
+            buffer.write(picture_data)
+
+    add_new_student_to_dataframe(student_id)
+
+    return JSONResponse(content={"id": student_id, "name": student.name, "email": student.email}, status_code=201)

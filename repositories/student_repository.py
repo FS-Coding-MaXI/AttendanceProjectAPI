@@ -27,7 +27,8 @@ def get_students_by_name_or_email(db: Session, searchTerm: str):
     return [row._asdict() for row in result]
 
 
-def get_student_by_id(db: Session, student_id: int):
+def get_student_by_id(student_id: int):
+    db = SessionLocal()
     stmt = select(students).where(students.c.id == student_id)
     return db.execute(stmt).first()._asdict()
 
@@ -87,3 +88,9 @@ def remove_student_from_class_by_id(student_id: int, class_id: int):
     )
     db.execute(stmt)
     db.commit()
+
+def get_all_names():
+    db = SessionLocal()
+    stmt = select(students.c.name).distinct()
+    result = db.execute(stmt).all()
+    return [res[0] for res in result]
